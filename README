@@ -1,0 +1,11 @@
+ArduinoIRCd - A small IRCd for Arduino
+Written by Aaron "Dark_Aaron" Blakely <aaron@ephasic.org>
+
+NOTE: This IRC server is just a proof of concept, it's not meant to be used
+      for production.
+
+To use:
+	Just open srd/ArduinoIRCd.pde in your Arduino IDE.
+
+Dependencies:
+	ArduinoEthernent Library: http://gkaindl.com/software/arduino-ethernet/dhcp
