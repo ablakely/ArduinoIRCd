@@ -1,0 +1,4 @@
+   The purpose of the 555IC (NE555 and similar) is to provide
+a timer in wich we will use it's high wave to know when to update the ping
+hanlers.  We could just code this, but what's the fun of that? This also takes
+some load off the CPU.
