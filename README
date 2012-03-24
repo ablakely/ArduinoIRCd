@@ -8,4 +8,4 @@ To use:
 	Just open srd/ArduinoIRCd.pde in your Arduino IDE.
 
 Dependencies:
-	ArduinoEthernent Library: http://gkaindl.com/software/arduino-ethernet/dhcp
+	Ethernet-ablakely: http://github.com/ablakely/Ethernet-ablakely

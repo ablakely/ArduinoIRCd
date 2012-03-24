@@ -1,15 +1,13 @@
 /*
- * ArduinoIRCd - Small IRCd for Arduinos with Ethernet Sheild
+ * ArduinoIRCd - Small IRCd for Arduinos with Ethernet Shield
  *
  * Written by Aaron Blakely
  */
-
+ 
 #if defined(ARDUINO) && ARDUINO > 18
 #include <SPI.h>
 #endif
 #include <Ethernet.h>
-#include <EthernetDHCP.h>
-
 
 struct IRCServer {
   char *netName;
@@ -21,68 +19,58 @@ struct IRCServer {
   char *starttime;
 };
 
-byte mac[] = { 
-  0xA0, 0xEF, 0xAE, 0xFE, 0xEF, 0xAD };
+struct IRCClient {
+  char *nick;
+  char *user;
+  char *host;
+  char *ipAddr;
+  char *name;
+  int lastping;
+  uint8_t socket;
+};
+
+byte mac[] = {
+  0xA0, 0xEF, 0xAE, 0xFE, 0xEF, 0xAD};
   
-Server server(6667);
+EthernetServer server(6667);
 IRCServer ircd;
 
-
-/* some function defs */
-void notice(Client user, char *tg, char *str);
+void notice(EthernetClient user, char *tg, char *str);
 const char *ip_to_str(const uint8_t* ipAddr);
-void welcome_user(Client user, char *nick);
+void welcome_user(EthernetClient u, char *nick, char *user, const char *host);
 
 void setup()
 {
   Serial.begin(9600);
-  
   Serial.println("\r\n\r\nArduinoIRCd: starting...");
-  EthernetDHCP.begin(mac, 1);
   
-  ircd.netName = "Ephasic";
-  ircd.name = "ardircd.ephasic.org";
-  ircd.ver  = "ArduinoIRCd-0.0.1";
-  ircd.description = "test server";
-  ircd.users = ircd.maxusers = 0;
+  if (Ethernet.begin(mac) == 0) {
+    Serial.println("Failed to configure Ethernet using DHCP.");
+    for(;;);
+  }
+  
+  Serial.print("IP Address:");
+  for (byte thisByte = 0; thisByte < 4; thisByte++) {
+    Serial.print(Ethernet.localIP()[thisByte], DEC);
+    Serial.print(".");
+  }
+  Serial.println();
+  
+  /* init our server struct - these values may later be filled by config file */
+  ircd.netName      = "Ephasic";
+  ircd.name         = "ardircd.ephasic.org";
+  ircd.ver          = "ArduinoIRCd-0.0.1";
+  ircd.description  = "test server";
+  ircd.users        = ircd.maxusers = 0;
 }
 
 void loop()
 {
-  static DhcpState prevState = DhcpStateNone;
-  static unsigned long prevTime = 0;
-
-  DhcpState state = EthernetDHCP.poll();
-  if (prevState != state)
-  {
-    switch(state) {
-    case DhcpStateDiscovering:
-      Serial.print("Discovering DHCP servers.");
-      break;
-    case DhcpStateLeased: 
-      {
-        Serial.println();
-        Serial.print("obtained IP address: ");
-        const byte *ipAddr = EthernetDHCP.ipAddress();
-
-        Serial.println(ip_to_str(ipAddr));
-        server.begin();
-        
-        break;
-      }
-    }
-  }
-  else if (state != DhcpStateLeased && millis() - prevTime > 300)
-  {
-    prevTime = millis();
-    Serial.print('.');
-  }
-
-  prevState = state;
+  IRCClient user;
+  EthernetClient client = server.available();
   
-  Client client = server.available();
+  user.socket = client.getSocket();
   if (client) {
-    
     ircd.users++;
     if (ircd.users > ircd.maxusers) {
       ircd.maxusers = ircd.users;
@@ -94,30 +82,35 @@ void loop()
     while (client.connected()) {
       if (client.available()) {
         char c = client.read();
+        
         if (sentHeader == false) {
-          notice(client, "AUTH", "*** Looking up your hostname...");
+          notice(client, "AUTH", "*** Looking up your hostnamem...");
           notice(client, "AUTH", "*** Found your hostname");
-          user_welcome(client, "Dark_Aaron", "aaron", "192.168.1.7");
+          
+          byte remoteip[4];
+          client.getRemoteIP(user.socket, remoteip);
+          const char *ipAddr = ip_to_str(remoteip);
+          
+          user_welcome(client, "Dark_Aaron", "aaron", ipAddr);
           
           sentHeader = true;
-           
         }
-
+        
         Serial.print(c);
+        
         if (c == '\n') {
           currentLineIsBlank = true;
-        } 
+        }
         else if (c != '\r') {
           currentLineIsBlank = false;
         }
       }
-      delay(1);
+     delay(1);
     }
   }
 }
 
-
-void notice(Client client, char *tg, char *str)
+void notice(EthernetClient client, char *tg, char *str)
 {
   char buf[1024];
   sprintf(buf, ":%s NOTICE %s :%s\r\n", ircd.name, tg, str);
@@ -132,7 +125,7 @@ const char *ip_to_str(const uint8_t* ipAddr)
   return buf;
 }
 
-void user_welcome(Client u, char *nick, char *user, char *host)
+void user_welcome(EthernetClient u, char *nick, char *user, const char *host)
 {
   char buf[2048];
   sprintf(buf, ":%s 001 %s :Welcome to the %s IRC network, %s!%s@%s\r\n", ircd.name, nick, ircd.netName, nick, user, host);
@@ -147,4 +140,3 @@ void user_welcome(Client u, char *nick, char *user, char *host)
   u.print(buf);
   memset(buf, 0, 2048);
 }
-
