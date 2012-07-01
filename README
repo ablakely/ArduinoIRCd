@@ -5,7 +5,7 @@ NOTE: This IRC server is just a proof of concept, it's not meant to be used
       for production.
 
 To use:
-	Just open srd/ArduinoIRCd.pde in your Arduino IDE.
+	Just open src/ArduinoIRCd.pde in your Arduino IDE.
 
 Dependencies:
 	Ethernet-ablakely: http://github.com/ablakely/Ethernet-ablakely
